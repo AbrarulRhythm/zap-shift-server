@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 3000;
 
 // Middleeare
@@ -45,7 +45,9 @@ async function run() {
                 query.senderEmail = email;
             }
 
-            const cursor = parcelsCollections.find(query);
+            const options = { sort: { created_at: -1 } }
+
+            const cursor = parcelsCollections.find(query, options);
             const result = await cursor.toArray();
             res.send(result);
         });
@@ -54,6 +56,15 @@ async function run() {
         app.post('/parcels', async (req, res) => {
             const parcel = req.body;
             const result = await parcelsCollections.insertOne(parcel);
+            res.send(result);
+        });
+
+        // Delete API
+        app.delete('/parcels/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+
+            const result = await parcelsCollections.deleteOne(query);
             res.send(result);
         });
 
