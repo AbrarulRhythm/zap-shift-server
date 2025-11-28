@@ -121,6 +121,7 @@ async function run() {
             res.send({ url: session.url });
         });
 
+        // Payment Success API
         app.patch('/payment-success', async (req, res) => {
             const sessionId = req.query.session_id;
             const formattedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -129,7 +130,7 @@ async function run() {
 
             const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-            const transactionId = session.payment_intent
+            const transactionId = session.payment_intent;
             const query = { transactionId: transactionId }
             const paymentExist = await paymentCollection.findOne(query);
 
@@ -178,6 +179,19 @@ async function run() {
             }
 
             res.send({ success: false });
+        });
+
+        // Payment History GET API
+        app.get('/payments', async (req, res) => {
+            const email = req.query.email;
+            const query = {}
+            if (email) {
+                query.customerEmail = email;
+            }
+
+            const cursor = paymentCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
         });
 
         // Send a ping to confirm a successful connection
