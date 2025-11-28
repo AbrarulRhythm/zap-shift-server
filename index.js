@@ -6,6 +6,16 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const stripe = require('stripe')(process.env.STRIPE_SECRET);
 
 const port = process.env.PORT || 3000;
+const crypto = require('crypto');
+
+// Generate Tracking Id
+function generateTrackingId() {
+    const prefix = 'zap'; // brand prefix
+    const date = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+    const random = crypto.randomBytes(3).toString('hex').toUpperCase(); // 6 char random hex
+
+    return `${prefix}-${date}-${random}`;
+}
 
 // Middleeare
 app.use(cors());
@@ -36,6 +46,7 @@ async function run() {
 
         const db = client.db('zap_shift_db');
         const parcelsCollections = db.collection('parcels');
+        const paymentCollection = db.collection('payments');
 
         // :::::::::::::::::::::::::::::: - Parcel API - ::::::::::::::::::::::::::::::
         // Get API
@@ -100,7 +111,8 @@ async function run() {
                 customer_email: paymentInfo.senderEmail,
                 mode: 'payment',
                 metadata: {
-                    parcelId: paymentInfo.parcelId
+                    parcelId: paymentInfo.parcelId,
+                    parcleName: paymentInfo.parcleName
                 },
                 success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
                 cancel_url: `${process.env.SITE_DOMAIN}/dashboard/payment-cancelled?cancelled=true`,
@@ -111,6 +123,9 @@ async function run() {
 
         app.patch('/payment-success', async (req, res) => {
             const sessionId = req.query.session_id;
+            const formattedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            const formattedTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const trackingId = generateTrackingId();
 
             const session = await stripe.checkout.sessions.retrieve(sessionId);
 
@@ -119,12 +134,34 @@ async function run() {
                 const query = { _id: new ObjectId(id) };
                 const update = {
                     $set: {
-                        paymentStatus: 'paid'
+                        paymentStatus: 'paid',
+                        trackingId: trackingId
                     }
                 }
 
                 const result = await parcelsCollections.updateOne(query, update);
-                res.send(result);
+
+                const payment = {
+                    amount: session.amount_total / 100,
+                    currency: session.currency,
+                    customerEmail: session.customer_email,
+                    parcelId: session.metadata.parcelId,
+                    parcleName: session.metadata.parcleName,
+                    transactionId: session.payment_intent,
+                    paymentStatus: session.payment_status,
+                    paidAt: `${formattedDate} | ${formattedTime}`
+                }
+
+                if (session.payment_status === 'paid') {
+                    const resultPayment = await paymentCollection.insertOne(payment);
+                    res.send({
+                        success: true,
+                        modifyParcel: result,
+                        trackingId: trackingId,
+                        transactionId: session.payment_intent,
+                        paymentInfo: resultPayment
+                    });
+                }
             }
 
             res.send({ success: false });
