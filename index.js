@@ -72,10 +72,22 @@ async function run() {
         // await client.connect();
 
         const db = client.db('zap_shift_db');
+        const usersCollections = db.collection('users');
         const parcelsCollections = db.collection('parcels');
         const paymentCollection = db.collection('payments');
 
-        // :::::::::::::::::::::::::::::: - Parcel API - ::::::::::::::::::::::::::::::
+        // :::::::::::::::::::::::::::::: - User Related APIS - ::::::::::::::::::::::::::::::
+        // Post API
+        app.post('/users', async (req, res) => {
+            const user = req.body;
+            user.role = 'user'; // Default user role
+            user.createdAt = new Date();
+
+            const result = await usersCollections.insertOne(user);
+            res.send(result);
+        });
+
+        // :::::::::::::::::::::::::::::: - Parcel Related APIS - ::::::::::::::::::::::::::::::
         // Get API
         app.get('/parcels', async (req, res) => {
             const query = {};
