@@ -83,8 +83,16 @@ async function run() {
             user.role = 'user'; // Default user role
             user.createdAt = new Date();
 
+            const email = user.email;
+            const userExist = await usersCollections.findOne({ email });
+
+            if (userExist) {
+                return res.send({ message: '⚡You already exist. Signed in successfully.' });
+            }
+
             const result = await usersCollections.insertOne(user);
             res.send(result);
+
         });
 
         // :::::::::::::::::::::::::::::: - Parcel Related APIS - ::::::::::::::::::::::::::::::
