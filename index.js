@@ -151,8 +151,6 @@ async function run() {
         // Payment Success API
         app.patch('/payment-success', async (req, res) => {
             const sessionId = req.query.session_id;
-            const formattedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-            const formattedTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             const trackingId = generateTrackingId();
 
             const session = await stripe.checkout.sessions.retrieve(sessionId);
@@ -190,7 +188,7 @@ async function run() {
                     transactionId: session.payment_intent,
                     paymentStatus: session.payment_status,
                     trackingId: trackingId,
-                    paidAt: `${formattedDate} | ${formattedTime}`
+                    paidAt: new Date()
                 }
 
                 if (session.payment_status === 'paid') {
@@ -222,7 +220,7 @@ async function run() {
                 }
             }
 
-            const cursor = paymentCollection.find(query);
+            const cursor = paymentCollection.find(query).sort({ paidAt: -1 });
             const result = await cursor.toArray();
             res.send(result);
         });
