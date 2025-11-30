@@ -75,6 +75,7 @@ async function run() {
         const usersCollections = db.collection('users');
         const parcelsCollections = db.collection('parcels');
         const paymentCollection = db.collection('payments');
+        const ridersCollection = db.collection('riders');
 
         // :::::::::::::::::::::::::::::: - User Related APIS - ::::::::::::::::::::::::::::::
         // Post API
@@ -242,6 +243,16 @@ async function run() {
 
             const cursor = paymentCollection.find(query).sort({ paidAt: -1 });
             const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        // :::::::::::::::::::::::::::::: - Riders Related APIS - ::::::::::::::::::::::::::::::
+        app.post('/riders', async (req, res) => {
+            const rider = req.body;
+            rider.status = 'pending',
+                rider.createdAt = new Date();
+
+            const result = await ridersCollection.insertOne(rider);
             res.send(result);
         });
 
