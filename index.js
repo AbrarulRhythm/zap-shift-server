@@ -247,6 +247,18 @@ async function run() {
         });
 
         // :::::::::::::::::::::::::::::: - Riders Related APIS - ::::::::::::::::::::::::::::::
+        // Get API
+        app.get('/riders', async (req, res) => {
+            const query = {};
+            if (req.query.status) {
+                query.status = req.query.status;
+            }
+            const cursor = ridersCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        // Post API
         app.post('/riders', async (req, res) => {
             const rider = req.body;
             rider.status = 'pending',
