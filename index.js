@@ -248,7 +248,7 @@ async function run() {
 
         // :::::::::::::::::::::::::::::: - Riders Related APIS - ::::::::::::::::::::::::::::::
         // Get API
-        app.get('/riders', async (req, res) => {
+        app.get('/riders', verifyFBToken, async (req, res) => {
             const query = {};
             if (req.query.status) {
                 query.status = req.query.status;
@@ -265,6 +265,33 @@ async function run() {
                 rider.createdAt = new Date();
 
             const result = await ridersCollection.insertOne(rider);
+            res.send(result);
+        });
+
+        // Patch API
+        app.patch('/riders/:id', verifyFBToken, async (req, res) => {
+            const status = req.body.status;
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    status: status
+                }
+            }
+
+            const result = await ridersCollection.updateOne(query, updatedDoc);
+
+            if (status === 'approved') {
+                const email = req.body.email;
+                const userQuery = { email };
+                const updateUser = {
+                    $set: {
+                        role: 'rider'
+                    }
+                }
+                const userResult = await usersCollections.updateOne(userQuery, updateUser);
+            }
+
             res.send(result);
         });
 
