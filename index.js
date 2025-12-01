@@ -78,6 +78,13 @@ async function run() {
         const ridersCollection = db.collection('riders');
 
         // :::::::::::::::::::::::::::::: - User Related APIS - ::::::::::::::::::::::::::::::
+        // Get API
+        app.get('/users', verifyFBToken, async (req, res) => {
+            const cursor = usersCollections.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
         // Post API
         app.post('/users', async (req, res) => {
             const user = req.body;
