@@ -106,7 +106,7 @@ async function run() {
                 ]
             }
 
-            const cursor = usersCollections.find(query).sort({ createdAt: -1 }).limit(2);
+            const cursor = usersCollections.find(query).sort({ createdAt: -1 }).limit(10);
             const result = await cursor.toArray();
             res.send(result);
         });
@@ -155,10 +155,14 @@ async function run() {
         // Get API
         app.get('/parcels', async (req, res) => {
             const query = {};
-            const { email } = req.query;
+            const { email, deliveryStatus } = req.query;
 
             if (email) {
                 query.senderEmail = email;
+            }
+
+            if (deliveryStatus) {
+                query.deliveryStatus = deliveryStatus;
             }
 
             const options = { sort: { created_at: -1 } }
@@ -249,6 +253,7 @@ async function run() {
                 const update = {
                     $set: {
                         paymentStatus: 'paid',
+                        deliveryStatus: 'pending-pickup',
                         trackingId: trackingId
                     }
                 }
@@ -330,7 +335,8 @@ async function run() {
             const query = { _id: new ObjectId(id) };
             const updatedDoc = {
                 $set: {
-                    status: status
+                    status: status,
+                    workStatus: 'available'
                 }
             }
 
