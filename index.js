@@ -94,13 +94,21 @@ async function run() {
         // :::::::::::::::::::::::::::::: - User Related APIS - ::::::::::::::::::::::::::::::
         // Get API
         app.get('/users', verifyFBToken, async (req, res) => {
-            const cursor = usersCollections.find();
+            const searchText = req.query.searchText;
+            const query = {};
+
+            if (searchText) {
+                // query.displayName = { $regex: searchText, $options: 'i' };
+
+                query.$or = [
+                    { displayName: { $regex: searchText, $options: 'i' } },
+                    { email: { $regex: searchText, $options: 'i' } }
+                ]
+            }
+
+            const cursor = usersCollections.find(query).sort({ createdAt: -1 }).limit(2);
             const result = await cursor.toArray();
             res.send(result);
-        });
-
-        app.get('/users/:id', async (req, res) => {
-
         });
 
         // Get APi for user role
