@@ -97,7 +97,7 @@ async function run() {
             const log = {
                 trackingId,
                 status,
-                details: status.split('-').join(' '),
+                details: status.split('_').join(' '),
                 createdAt: new Date()
             }
             const result = await trackingsCollection.insertOne(log);
@@ -194,7 +194,6 @@ async function run() {
                 query.riderEmail = riderEmail;
             }
             if (deliveryStatus !== 'parcel_delivered') {
-                // query.deliveryStatus = { $in: ['driver_assigned', 'rider_arriving'] };
                 query.deliveryStatus = { $nin: ['parcel_delivered'] };
             }
             else {
@@ -221,7 +220,7 @@ async function run() {
             parcel.createdAt = new Date();
             parcel.trackingId = trackingId;
 
-            logTracking(trackingId, 'parcel-created');
+            logTracking(trackingId, 'parcel_created');
 
             const result = await parcelsCollections.insertOne(parcel);
             res.send(result);
@@ -359,7 +358,7 @@ async function run() {
                 const update = {
                     $set: {
                         paymentStatus: 'paid',
-                        deliveryStatus: 'pending-pickup'
+                        deliveryStatus: 'pending_pickup'
                     }
                 }
 
@@ -380,7 +379,7 @@ async function run() {
                 if (session.payment_status === 'paid') {
                     const resultPayment = await paymentCollection.insertOne(payment);
 
-                    logTracking(trackingId, 'pending-pickup');
+                    logTracking(trackingId, 'parcel_paid');
 
                     res.send({
                         success: true,
