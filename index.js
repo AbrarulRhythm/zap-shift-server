@@ -92,6 +92,7 @@ async function run() {
             next();
         }
 
+        // Tracking Log
         const logTracking = async (trackingId, status) => {
             const log = {
                 trackingId,
