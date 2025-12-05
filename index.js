@@ -217,6 +217,12 @@ async function run() {
         // Post API
         app.post('/parcels', async (req, res) => {
             const parcel = req.body;
+            const trackingId = generateTrackingId();
+            parcel.createdAt = new Date();
+            parcel.trackingId = trackingId;
+
+            logTracking(trackingId, 'parcel-created');
+
             const result = await parcelsCollections.insertOne(parcel);
             res.send(result);
         });
@@ -316,7 +322,8 @@ async function run() {
                 mode: 'payment',
                 metadata: {
                     parcelId: paymentInfo.parcelId,
-                    parcleName: paymentInfo.parcleName
+                    parcleName: paymentInfo.parcleName,
+                    trackingId: paymentInfo.trackingId
                 },
                 success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
                 cancel_url: `${process.env.SITE_DOMAIN}/dashboard/payment-cancelled?cancelled=true`,
@@ -328,7 +335,6 @@ async function run() {
         // Payment Success API
         app.patch('/payment-success', async (req, res) => {
             const sessionId = req.query.session_id;
-            const trackingId = generateTrackingId();
 
             const session = await stripe.checkout.sessions.retrieve(sessionId);
 
@@ -344,14 +350,16 @@ async function run() {
                 });
             }
 
+            // use the previous tracking id created during the parcel create which was set to the session metadata during session creation
+            const trackingId = session.metadata.trackingId;
+
             if (session.payment_status === 'paid') {
                 const id = session.metadata.parcelId;
                 const query = { _id: new ObjectId(id) };
                 const update = {
                     $set: {
                         paymentStatus: 'paid',
-                        deliveryStatus: 'pending-pickup',
-                        trackingId: trackingId
+                        deliveryStatus: 'pending-pickup'
                     }
                 }
 
@@ -464,6 +472,15 @@ async function run() {
                 const userResult = await usersCollections.updateOne(userQuery, updateUser);
             }
 
+            res.send(result);
+        });
+
+        // :::::::::::::::::::::::::::::: - Tracking Related APIS - ::::::::::::::::::::::::::::::
+        // Get API
+        app.get('/trackings/:trackingID/logs', async (req, res) => {
+            const trackingId = req.params.trackingID;
+            const query = { trackingId };
+            const result = await trackingsCollection.find(query).toArray();
             res.send(result);
         });
 
