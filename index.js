@@ -172,6 +172,23 @@ async function run() {
             res.send(result);
         });
 
+        // Get API (Riders)
+        app.get('/parcels/rider', async (req, res) => {
+            const { riderEmail, deliveryStatus } = req.query;
+            const query = {};
+
+            if (riderEmail) {
+                query.riderEmail = riderEmail;
+            }
+            if (deliveryStatus) {
+                query.deliveryStatus = deliveryStatus;
+            }
+
+            const cursor = parcelsCollections.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
         // Get API for single data
         app.get('/parcels/:id', async (req, res) => {
             const id = req.params.id;
