@@ -76,6 +76,7 @@ async function run() {
         const parcelsCollections = db.collection('parcels');
         const paymentCollection = db.collection('payments');
         const ridersCollection = db.collection('riders');
+        const trackingsCollection = db.collection('trackings');
 
         // Middle ware admin before allowing admin activity
         // must be use after verifyFirebaseToken middle ware
@@ -89,6 +90,17 @@ async function run() {
             }
 
             next();
+        }
+
+        const logTracking = async (trackingId, status) => {
+            const log = {
+                trackingId,
+                status,
+                details: status.split('-').join(' '),
+                createdAt: new Date()
+            }
+            const result = await trackingsCollection.insertOne(log);
+            return result;
         }
 
         // :::::::::::::::::::::::::::::: - User Related APIS - ::::::::::::::::::::::::::::::
@@ -210,7 +222,7 @@ async function run() {
 
         // Patch API for assign rider
         app.patch('/parcels/:id', async (req, res) => {
-            const { riderId, riderName, riderEmail } = req.body;
+            const { riderId, riderName, riderEmail, trackingId } = req.body;
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
 
@@ -235,12 +247,15 @@ async function run() {
 
             const riderResult = await ridersCollection.updateOne(riderQuery, riderUpdatedDoc);
 
+            // Log Tracking
+            logTracking(trackingId, 'driver_assigned');
+
             res.send(riderResult);
         });
 
         // Patch API for update delivery status
         app.patch('/parcels/:id/status', async (req, res) => {
-            const { deliveryStatus, riderId } = req.body;
+            const { deliveryStatus, riderId, trackingId } = req.body;
             const query = { _id: new ObjectId(req.params.id) };
             const updatedDoc = {
                 $set: {
@@ -261,6 +276,10 @@ async function run() {
             }
 
             const result = await parcelsCollections.updateOne(query, updatedDoc);
+
+            // Log Tracking
+            logTracking(trackingId, deliveryStatus);
+
             res.send(result);
         });
 
@@ -351,6 +370,9 @@ async function run() {
 
                 if (session.payment_status === 'paid') {
                     const resultPayment = await paymentCollection.insertOne(payment);
+
+                    logTracking(trackingId, 'pending-pickup');
+
                     res.send({
                         success: true,
                         modifyParcel: result,
