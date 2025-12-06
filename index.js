@@ -92,6 +92,18 @@ async function run() {
             next();
         }
 
+        const verifyRider = async (req, res, next) => {
+            const email = req.decoded_email;
+            const query = { email };
+            const user = await usersCollections.findOne(query);
+
+            if (!user || user.role !== 'rider') {
+                return res.status(403).send({ message: 'forbidden accress' });
+            }
+
+            next();
+        }
+
         // Tracking Log
         const logTracking = async (trackingId, status) => {
             const log = {
@@ -376,22 +388,20 @@ async function run() {
                     paidAt: new Date()
                 }
 
-                if (session.payment_status === 'paid') {
-                    const resultPayment = await paymentCollection.insertOne(payment);
+                const resultPayment = await paymentCollection.insertOne(payment);
 
-                    logTracking(trackingId, 'parcel_paid');
+                logTracking(trackingId, 'parcel_paid');
 
-                    res.send({
-                        success: true,
-                        modifyParcel: result,
-                        trackingId: trackingId,
-                        transactionId: session.payment_intent,
-                        paymentInfo: resultPayment
-                    });
-                }
+                return res.send({
+                    success: true,
+                    modifyParcel: result,
+                    trackingId: trackingId,
+                    transactionId: session.payment_intent,
+                    paymentInfo: resultPayment
+                });
             }
 
-            res.send({ success: false });
+            return res.send({ success: false });
         });
 
         // Payment History GET API
